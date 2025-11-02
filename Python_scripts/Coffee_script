@@ -1,0 +1,71 @@
+# --- 0️⃣ Імпорт бібліотек та даних ---
+import pandas as pd
+
+# Заміни шлях на свій файл
+df = pd.read_csv("data/index_1.csv")
+
+# --- 1️⃣ Попередня обробка ---
+df['weekday'] = pd.to_datetime(df['datetime']).dt.day_name()
+df['month'] = pd.to_datetime(df['datetime']).dt.month_name()
+df['is_weekend'] = df['weekday'].isin(['Saturday', 'Sunday'])
+df['hour_of_day'] = pd.to_datetime(df['datetime']).dt.hour
+df['time'] = pd.to_datetime(df['datetime']).dt.time
+
+# Функція для визначення пікового періоду
+def define_peak(hour):
+    if 7 <= hour <= 10:
+        return 'Morning Peak'
+    elif 12 <= hour <= 14:
+        return 'Lunch Peak'
+    elif 17 <= hour <= 19:
+        return 'Evening Peak'
+    else:
+        return 'Off-Peak'
+
+df['peak_period'] = df['hour_of_day'].apply(define_peak)
+df['day_type'] = df['is_weekend'].apply(lambda x: 'Weekend' if x else 'Weekday')
+
+# Категоризація напоїв
+coffee_map = {
+    'Latte': 'Coffee',
+    'Americano': 'Coffee',
+    'Cappuccino': 'Coffee',
+    'Espresso': 'Coffee',
+    'Flat White': 'Coffee',
+    'Hot Chocolate': 'Chocolate',
+    'Tea': 'Tea'
+}
+df['category'] = df['coffee_name'].map(coffee_map)
+
+# --- 2️⃣ Аналітичні показники ---
+# 1. Середній чек по пікових періодах
+avg_check_peak = df.groupby('peak_period')['money'].mean().round(2)
+print("Середній чек по пікових періодах:\n", avg_check_peak)
+
+# 2. Кількість продажів по днях тижня та категоріях
+sales_weekday_category = df.groupby(['weekday', 'category'])['money'].count().unstack().fillna(0)
+print("\nПродажі по днях тижня та категоріях:\n", sales_weekday_category)
+
+# 3. Продажі по типу платежу та пікових періодах
+sales_cash_peak = df.groupby(['cash_type', 'peak_period'])['money'].count().unstack().fillna(0)
+print("\nПродажі по типу платежу та пікових періодах:\n", sales_cash_peak)
+
+# 4. Середній чек по днях тижня
+avg_check_weekday = df.groupby('weekday')['money'].mean().round(2)
+print("\nСередній чек по днях тижня:\n", avg_check_weekday)
+
+# 5. ТОП-5 найпопулярніших напоїв
+top_drinks = df['coffee_name'].value_counts().head(5)
+print("\nТОП-5 найпопулярніших напоїв:\n", top_drinks)
+
+# 6. Частка оплат карткою і готівкою
+payment_share = df['cash_type'].value_counts(normalize=True).round(3) * 100
+print("\nЧастка оплат за типом платежу (%):\n", payment_share)
+
+# 7. Середній дохід по категоріях напоїв
+avg_income_category = df.groupby('category')['money'].mean().round(2)
+print("\nСередній чек по категоріях:\n", avg_income_category)
+
+# 8. Загальна виручка по днях тижня
+revenue_by_day = df.groupby('weekday')['money'].sum().round(2)
+print("\nЗагальна виручка по днях тижня:\n", revenue_by_day)
